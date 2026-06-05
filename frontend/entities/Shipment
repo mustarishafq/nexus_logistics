@@ -1,0 +1,92 @@
+{
+  "name": "Shipment",
+  "type": "object",
+  "properties": {
+    "source_system": {
+      "type": "string",
+      "description": "Source system name"
+    },
+    "order_number": {
+      "type": "string",
+      "description": "Order number from source system"
+    },
+    "tracking_number": {
+      "type": "string",
+      "description": "Courier tracking number"
+    },
+    "courier": {
+      "type": "string",
+      "description": "Courier/carrier name"
+    },
+    "ship_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date shipment was shipped"
+    },
+    "delivery_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date shipment was delivered"
+    },
+    "current_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "shipped",
+        "in_transit",
+        "out_for_delivery",
+        "delivered",
+        "failed_delivery",
+        "returned"
+      ],
+      "default": "pending"
+    },
+    "state": {
+      "type": "string",
+      "description": "Destination state"
+    },
+    "city": {
+      "type": "string",
+      "description": "Destination city"
+    },
+    "postcode": {
+      "type": "string",
+      "description": "Destination postcode"
+    },
+    "sku_count": {
+      "type": "number",
+      "description": "Number of SKUs in shipment"
+    },
+    "weight": {
+      "type": "number",
+      "description": "Shipment weight in kg"
+    },
+    "shipping_cost": {
+      "type": "number",
+      "description": "Shipping cost"
+    },
+    "delivery_days": {
+      "type": "number",
+      "description": "Calculated delivery days"
+    },
+    "sla_target_days": {
+      "type": "number",
+      "description": "SLA target in days"
+    },
+    "sla_result": {
+      "type": "string",
+      "enum": [
+        "met",
+        "breached",
+        "pending"
+      ],
+      "default": "pending"
+    }
+  },
+  "required": [
+    "order_number",
+    "tracking_number",
+    "courier",
+    "current_status"
+  ]
+}

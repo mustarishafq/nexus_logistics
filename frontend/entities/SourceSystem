@@ -1,0 +1,53 @@
+{
+  "name": "SourceSystem",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Source system name"
+    },
+    "system_type": {
+      "type": "string",
+      "enum": [
+        "oms",
+        "erp",
+        "warehouse",
+        "shopify",
+        "woocommerce",
+        "marketplace",
+        "custom"
+      ],
+      "description": "Type of source system"
+    },
+    "api_key": {
+      "type": "string",
+      "description": "API key for authentication"
+    },
+    "webhook_secret": {
+      "type": "string",
+      "description": "Webhook secret for verification"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "error"
+      ],
+      "default": "active"
+    },
+    "last_received_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last webhook received timestamp"
+    },
+    "total_shipments_received": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "name",
+    "system_type"
+  ]
+}

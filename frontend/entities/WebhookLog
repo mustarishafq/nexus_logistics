@@ -1,0 +1,47 @@
+{
+  "name": "WebhookLog",
+  "type": "object",
+  "properties": {
+    "request_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "shipment_create",
+        "shipment_update",
+        "status_update",
+        "bulk_import"
+      ]
+    },
+    "source_system": {
+      "type": "string"
+    },
+    "processing_status": {
+      "type": "string",
+      "enum": [
+        "received",
+        "processing",
+        "completed",
+        "failed"
+      ],
+      "default": "received"
+    },
+    "error_message": {
+      "type": "string"
+    },
+    "payload_summary": {
+      "type": "string",
+      "description": "Brief summary of the payload"
+    },
+    "records_processed": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "event_type",
+    "source_system"
+  ]
+}

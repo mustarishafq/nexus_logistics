@@ -1,0 +1,40 @@
+{
+  "name": "SlaRule",
+  "type": "object",
+  "properties": {
+    "rule_type": {
+      "type": "string",
+      "enum": [
+        "global",
+        "courier",
+        "courier_state",
+        "courier_postcode_state"
+      ],
+      "description": "Type of SLA rule"
+    },
+    "courier": {
+      "type": "string",
+      "description": "Courier name (for courier, courier_state, and courier_postcode_state rules)"
+    },
+    "state": {
+      "type": "string",
+      "description": "State (for courier_state and courier_postcode_state rules)"
+    },
+    "postcode": {
+      "type": "string",
+      "description": "Postcode (for courier_postcode_state rules)"
+    },
+    "sla_days": {
+      "type": "number",
+      "description": "SLA target in days"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "rule_type",
+    "sla_days"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "nexus-logistics",
+  "private": true,
+  "scripts": {
+    "dev:full": "cd backend && php artisan migrate --force && php artisan db:seed --force && cd ../frontend && npm install && cd .. && npx concurrently -k -n backend,frontend -c blue,green \"cd backend && php artisan serve\" \"cd frontend && npm run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

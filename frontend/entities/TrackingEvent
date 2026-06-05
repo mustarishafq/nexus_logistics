@@ -1,0 +1,41 @@
+{
+  "name": "TrackingEvent",
+  "type": "object",
+  "properties": {
+    "shipment_id": {
+      "type": "string",
+      "description": "Reference to shipment"
+    },
+    "tracking_number": {
+      "type": "string",
+      "description": "Tracking number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "shipped",
+        "in_transit",
+        "out_for_delivery",
+        "delivered",
+        "failed_delivery",
+        "returned"
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event timestamp"
+    },
+    "source_system": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "tracking_number",
+    "status"
+  ]
+}
