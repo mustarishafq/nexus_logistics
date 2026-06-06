@@ -13,6 +13,7 @@ import { Plus, Plug, Copy, Trash2, RefreshCcw, ArrowLeftRight } from 'lucide-rea
 import StatusBadge from '@/components/shared/StatusBadge';
 import StatusMappingDialog from '@/components/integrations/StatusMappingDialog';
 import { toast } from 'sonner';
+import { getPublicWebhookUrl } from '@/lib/publicUrls';
 
 const systemTypes = ['oms', 'erp', 'warehouse', 'shopify', 'woocommerce', 'marketplace', 'custom'];
 
@@ -77,7 +78,10 @@ export default function Integrations() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {sources.map(src => (
+        {sources.map(src => {
+          const webhookUrl = getPublicWebhookUrl(src.id);
+
+          return (
           <Card key={src.id} className="p-5 border-border/50 space-y-4">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
@@ -114,9 +118,9 @@ export default function Integrations() {
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Webhook Endpoint</p>
               <div className="flex items-center gap-1">
                 <code className="text-xs bg-muted px-2 py-1 rounded flex-1 truncate font-mono text-primary">
-                  POST /api/webhooks/{src.id}/shipments
+                  POST {webhookUrl}
                 </code>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyToClipboard(`POST /api/webhooks/${src.id}/shipments`)}><Copy className="w-3 h-3" /></Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyToClipboard(webhookUrl)}><Copy className="w-3 h-3" /></Button>
               </div>
               <p className="text-[10px] text-muted-foreground mt-1">Pass <code className="bg-muted px-1 rounded">X-API-Key</code> header with your API key</p>
             </div>
@@ -142,7 +146,8 @@ export default function Integrations() {
               </Button>
             </div>
           </Card>
-        ))}
+        );
+        })}
 
         {sources.length === 0 && (
           <Card className="col-span-full p-8 text-center border-dashed border-2">
