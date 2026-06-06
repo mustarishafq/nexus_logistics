@@ -13,6 +13,7 @@ import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import SsoNexus from '@/pages/SsoNexus';
+import Logout from '@/pages/Logout';
 
 import AppLayout from '@/components/layout/AppLayout';
 import ExecutiveDashboard from '@/pages/ExecutiveDashboard';
@@ -96,6 +97,7 @@ function App() {
         <Router>
           <Routes>
             <Route path="/sso/nexus" element={<SsoNexus />} />
+            <Route path="/logout" element={<Logout />} />
             <Route path="*" element={<AuthenticatedApp />} />
           </Routes>
         </Router>
