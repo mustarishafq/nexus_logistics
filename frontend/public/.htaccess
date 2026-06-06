@@ -2,6 +2,8 @@
     RewriteEngine On
     RewriteBase /
     RewriteRule ^index\.html$ - [L]
+    # Do not serve the SPA for API paths — those must hit the backend (or 404).
+    RewriteCond %{REQUEST_URI} !^/api(/|$)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule . /index.html [L]

@@ -176,6 +176,13 @@ export const api = {
         method: 'POST',
         body: { email, password },
       });
+
+      if (!result.access_token) {
+        throw new Error(
+          'Login failed: no access token received. Rebuild the frontend with VITE_API_URL set to your production API URL.'
+        );
+      }
+
       setToken(result.access_token);
       return result;
     },
