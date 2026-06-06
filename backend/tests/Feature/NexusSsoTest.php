@@ -79,6 +79,29 @@ class NexusSsoTest extends TestCase
         $this->assertTrue($user->fresh()->is_approved);
     }
 
+    public function test_sso_api_exchange_returns_json_token_for_frontend_callback(): void
+    {
+        $token = $this->makeJwt([
+            'iss' => 'https://emzinexus.com',
+            'iat' => time(),
+            'exp' => time() + 60,
+            'email' => 'api@example.com',
+            'name' => 'API User',
+            'return_to' => 'https://emzinexus.com/applications',
+        ]);
+
+        $response = $this->getJson('/api/sso/nexus?token=' . urlencode($token));
+
+        $response->assertOk()
+            ->assertJsonStructure(['access_token', 'nexus_return_to'])
+            ->assertJsonPath('nexus_return_to', 'https://emzinexus.com/applications');
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'api@example.com',
+            'name' => 'API User',
+        ]);
+    }
+
     public function test_sso_rejects_invalid_token(): void
     {
         $response = $this->get('/sso/nexus?token=not-a-jwt');

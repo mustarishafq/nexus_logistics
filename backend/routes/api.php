@@ -9,11 +9,14 @@ use App\Http\Controllers\Api\TrackingEventController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Api\WebhookLogController;
+use App\Http\Controllers\NexusSsoController;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsApproved;
 use Illuminate\Support\Facades\Route;
 
 Route::post('webhooks/{sourceSystem}/shipments', [WebhookController::class, 'receiveShipments']);
+
+Route::get('sso/nexus', [NexusSsoController::class, 'exchange']);
 
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);

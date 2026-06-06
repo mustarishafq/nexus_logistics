@@ -16,16 +16,57 @@ class NexusSsoController extends Controller
             abort(Response::HTTP_FORBIDDEN, 'HTTPS is required.');
         }
 
+        $result = $this->resolveSso($request);
+
+        if ($result === null) {
+            abort(Response::HTTP_UNAUTHORIZED, 'Unauthorized');
+        }
+
+        if ($result['return_to'] !== null) {
+            $request->session()->put('nexus_return_to', $result['return_to']);
+        }
+
+        Auth::login($result['user']);
+        $request->session()->regenerate();
+
+        $params = ['access_token' => $result['api_token']];
+        if ($result['return_to'] !== null) {
+            $params['nexus_return_to'] = $result['return_to'];
+        }
+
+        return redirect()->route('home', $params);
+    }
+
+    public function exchange(Request $request)
+    {
+        if ($this->requiresHttps() && ! $request->secure()) {
+            return response()->json(['message' => 'HTTPS is required.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $result = $this->resolveSso($request);
+
+        if ($result === null) {
+            return response()->json(['message' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        return response()->json([
+            'access_token' => $result['api_token'],
+            'nexus_return_to' => $result['return_to'],
+        ]);
+    }
+
+    private function resolveSso(Request $request): ?array
+    {
         $token = $request->query('token');
 
         if (! is_string($token) || trim($token) === '') {
-            abort(Response::HTTP_UNAUTHORIZED, 'Unauthorized');
+            return null;
         }
 
         try {
             $claims = $this->decodeAndValidateToken($token);
         } catch (\Throwable $exception) {
-            abort(Response::HTTP_UNAUTHORIZED, 'Unauthorized');
+            return null;
         }
 
         $returnTo = $request->query('return_to');
@@ -34,9 +75,6 @@ class NexusSsoController extends Controller
         }
 
         $returnTo = $this->normalizeExternalUrl($returnTo);
-        if ($returnTo !== null) {
-            $request->session()->put('nexus_return_to', $returnTo);
-        }
 
         $user = User::query()->where('email', $claims['email'])->first();
 
@@ -56,15 +94,11 @@ class NexusSsoController extends Controller
         $user->tokens()->delete();
         $apiToken = $user->createToken('nexus-sso')->plainTextToken;
 
-        Auth::login($user);
-        $request->session()->regenerate();
-
-        $params = ['access_token' => $apiToken];
-        if ($returnTo !== null) {
-            $params['nexus_return_to'] = $returnTo;
-        }
-
-        return redirect()->route('home', $params);
+        return [
+            'user' => $user,
+            'api_token' => $apiToken,
+            'return_to' => $returnTo,
+        ];
     }
 
     private function defaultRole(): string

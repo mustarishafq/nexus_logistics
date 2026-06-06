@@ -18,9 +18,14 @@ export function setToken(token) {
   }
 }
 
-function getCsrfToken() {
-  const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : '';
+export function applySsoLogin({ access_token: accessToken, nexus_return_to: returnTo }) {
+  setToken(accessToken);
+  sessionStorage.setItem(NEXUS_SSO_KEY, '1');
+  sessionStorage.setItem(NEXUS_SSO_VERIFYING_KEY, '1');
+
+  if (returnTo) {
+    sessionStorage.setItem(NEXUS_RETURN_TO_KEY, returnTo);
+  }
 }
 
 export function captureSsoParams() {
@@ -32,13 +37,7 @@ export function captureSsoParams() {
     return false;
   }
 
-  setToken(accessToken);
-  sessionStorage.setItem(NEXUS_SSO_KEY, '1');
-  sessionStorage.setItem(NEXUS_SSO_VERIFYING_KEY, '1');
-
-  if (returnTo) {
-    sessionStorage.setItem(NEXUS_RETURN_TO_KEY, returnTo);
-  }
+  applySsoLogin({ access_token: accessToken, nexus_return_to: returnTo });
 
   params.delete('access_token');
   params.delete('nexus_return_to');
@@ -203,37 +202,30 @@ export const api = {
       return request('/auth/me');
     },
 
+    async exchangeNexusSso(token, returnTo) {
+      const params = new URLSearchParams({ token });
+      if (returnTo) {
+        params.set('return_to', returnTo);
+      }
+
+      return request(`/sso/nexus?${params}`);
+    },
+
     async logout() {
       if (isNexusSsoUser()) {
         const fallback = sessionStorage.getItem(NEXUS_RETURN_TO_KEY);
 
         try {
-          await fetch('/sanctum/csrf-cookie', { credentials: 'same-origin' });
-
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = '/logout';
-          form.style.display = 'none';
-
-          const csrfInput = document.createElement('input');
-          csrfInput.type = 'hidden';
-          csrfInput.name = '_token';
-          csrfInput.value = getCsrfToken();
-          form.appendChild(csrfInput);
-
-          document.body.appendChild(form);
-          setToken(null);
-          form.submit();
-
-          return { redirected: true };
+          await request('/auth/logout', { method: 'POST' });
         } catch {
+          // Token may already be invalid; still redirect back to Nexus.
+        } finally {
           setToken(null);
           clearNexusSsoState();
-          if (fallback) {
-            window.location.replace(fallback);
-            return { redirected: true };
-          }
         }
+
+        window.location.replace(fallback || 'https://emzinexus.com/applications');
+        return { redirected: true };
       }
 
       try {

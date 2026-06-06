@@ -12,6 +12,7 @@ import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
+import SsoNexus from '@/pages/SsoNexus';
 
 import AppLayout from '@/components/layout/AppLayout';
 import ExecutiveDashboard from '@/pages/ExecutiveDashboard';
@@ -93,7 +94,10 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
-          <AuthenticatedApp />
+          <Routes>
+            <Route path="/sso/nexus" element={<SsoNexus />} />
+            <Route path="*" element={<AuthenticatedApp />} />
+          </Routes>
         </Router>
         <Toaster />
       </QueryClientProvider>
