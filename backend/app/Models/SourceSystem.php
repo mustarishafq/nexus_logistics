@@ -7,7 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 
 class SourceSystem extends Model
 {
-    use HasApiFormat;
+    use HasApiFormat {
+        toApiArray as protected baseToApiArray;
+    }
+
+    public function toApiArray(): array
+    {
+        $data = $this->baseToApiArray();
+        $frontendUrl = rtrim((string) config('app.frontend_url'), '/');
+        $data['webhook_url'] = "{$frontendUrl}/api/webhooks/{$this->getKey()}/shipments";
+
+        return $data;
+    }
 
     protected $fillable = [
         'name', 'system_type', 'api_key', 'webhook_secret', 'status',

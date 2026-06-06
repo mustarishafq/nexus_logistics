@@ -12,6 +12,24 @@ class WebhookShipmentTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_source_system_includes_frontend_webhook_url(): void
+    {
+        config(['app.frontend_url' => 'https://logistics.emzinexus.com']);
+
+        $source = SourceSystem::create([
+            'name' => 'OMS',
+            'system_type' => 'oms',
+            'api_key' => 'key',
+            'webhook_secret' => 'secret',
+            'status' => 'active',
+        ]);
+
+        $this->assertSame(
+            "https://logistics.emzinexus.com/api/webhooks/{$source->id}/shipments",
+            $source->toApiArray()['webhook_url']
+        );
+    }
+
     public function test_accepts_raw_json_array_payload(): void
     {
         $source = SourceSystem::create([

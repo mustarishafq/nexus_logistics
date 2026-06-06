@@ -79,7 +79,7 @@ export default function Integrations() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {sources.map(src => {
-          const webhookUrl = getPublicWebhookUrl(src.id);
+          const webhookUrl = src.webhook_url || getPublicWebhookUrl(src.id);
 
           return (
           <Card key={src.id} className="p-5 border-border/50 space-y-4">
