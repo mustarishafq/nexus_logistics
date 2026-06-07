@@ -27,6 +27,18 @@ export default function ExecutiveDashboard() {
     courierMetrics.filter(c => c.total >= 5).sort((a, b) => parseFloat(a.returnRate) - parseFloat(b.returnRate)).slice(0, 5)
   , [courierMetrics]);
 
+  const courierReturnChartData = useMemo(() =>
+    courierMetrics
+      .filter(c => c.total >= 5)
+      .sort((a, b) => parseFloat(b.returnRate) - parseFloat(a.returnRate))
+      .slice(0, 6)
+      .map(c => ({
+        ...c,
+        returnRate: parseFloat(c.returnRate),
+        shortName: c.name.length > 18 ? `${c.name.slice(0, 18)}…` : c.name,
+      }))
+  , [courierMetrics]);
+
   const statusDist = useMemo(() => {
     const counts = {};
     filtered.forEach(s => { counts[s.current_status] = (counts[s.current_status] || 0) + 1; });
@@ -145,15 +157,36 @@ export default function ExecutiveDashboard() {
         {/* Courier Return Rate Bar */}
         <Card className="p-5 border-border/50">
           <h3 className="text-sm font-semibold mb-4">Courier Return Rates</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={courierMetrics.slice(0, 8)} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis type="number" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-              <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-              <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} />
-              <Bar dataKey="returnRate" fill={CHART_COLORS[4]} radius={[0, 4, 4, 0]} name="Return Rate %" />
-            </BarChart>
-          </ResponsiveContainer>
+          {courierReturnChartData.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No data</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={Math.max(200, courierReturnChartData.length * 40)}>
+              <BarChart
+                data={courierReturnChartData}
+                layout="vertical"
+                margin={{ top: 4, right: 12, left: 0, bottom: 4 }}
+                barSize={18}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" unit="%" domain={[0, 'auto']} />
+                <YAxis
+                  type="category"
+                  dataKey="shortName"
+                  width={96}
+                  tick={{ fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={false}
+                  stroke="hsl(var(--muted-foreground))"
+                />
+                <Tooltip
+                  contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
+                  formatter={(value) => [`${value}%`, 'Return Rate']}
+                  labelFormatter={(_, payload) => payload?.[0]?.payload?.name}
+                />
+                <Bar dataKey="returnRate" fill={CHART_COLORS[4]} radius={[0, 4, 4, 0]} name="Return Rate %" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </Card>
       </div>
     </div>
