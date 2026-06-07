@@ -143,6 +143,10 @@ function createEntityClient(resource) {
     async delete(id) {
       return request(`/${resource}/${id}`, { method: 'DELETE' });
     },
+
+    async bulkDelete(ids) {
+      return request(`/${resource}/bulk-delete`, { method: 'POST', body: { ids } });
+    },
   };
 }
 

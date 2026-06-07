@@ -24,27 +24,35 @@ import ShipmentDetail from '@/components/shipments/ShipmentDetail';
 import BulkImportDialog from '@/components/shipments/BulkImportDialog';
 import GlobalFilters from '@/components/shared/GlobalFilters';
 import { useShipmentData } from '@/hooks/useShipmentData';
-import { filterShipments, getUniqueValues } from '@/lib/analyticsUtils';
 import { formatDate } from '@/lib/dateUtils';
 
 export default function Shipments() {
   const queryClient = useQueryClient();
   const { filtered, filters, setFilters, isLoading, couriers, states, cities, sourceSystems } = useShipmentData();
   const [selectedShipment, setSelectedShipment] = useState(null);
-  const [shipmentToDelete, setShipmentToDelete] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [pendingDeleteIds, setPendingDeleteIds] = useState(null);
   const [showImport, setShowImport] = useState(false);
   const [searchText, setSearchText] = useState('');
 
   const deleteMutation = useMutation({
-    mutationFn: id => api.entities.Shipment.delete(id),
-    onSuccess: (_, deletedId) => {
+    mutationFn: ids => (
+      ids.length === 1
+        ? api.entities.Shipment.delete(ids[0])
+        : api.entities.Shipment.bulkDelete(ids)
+    ),
+    onSuccess: (result, deletedIds) => {
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
-      setSelectedShipment(prev => (prev?.id === deletedId ? null : prev));
-      setShipmentToDelete(null);
-      toast.success('Shipment deleted');
+      const deletedSet = new Set(deletedIds.map(String));
+      setSelectedShipment(prev => (prev && deletedSet.has(String(prev.id)) ? null : prev));
+      setSelectedIds(prev => prev.filter(id => !deletedSet.has(String(id))));
+      setPendingDeleteIds(null);
+
+      const count = result.deleted ?? deletedIds.length;
+      toast.success(count === 1 ? 'Shipment deleted' : `${count} shipments deleted`);
     },
     onError: () => {
-      toast.error('Failed to delete shipment');
+      toast.error('Failed to delete shipment(s)');
     },
   });
 
@@ -54,6 +62,15 @@ export default function Shipments() {
         (s.tracking_number || '').toLowerCase().includes(searchText.toLowerCase())
       )
     : filtered;
+
+  const pendingDeleteCount = pendingDeleteIds?.length ?? 0;
+  const pendingDeleteOrders = pendingDeleteIds
+    ? searchFiltered
+        .filter(s => pendingDeleteIds.includes(String(s.id)))
+        .slice(0, 3)
+        .map(s => s.order_number)
+        .filter(Boolean)
+    : [];
 
   const columns = [
     { key: 'order_number', label: 'Order #' },
@@ -70,6 +87,7 @@ export default function Shipments() {
       key: 'actions',
       label: '',
       sortable: false,
+      exportable: false,
       render: (_, row) => (
         <Button
           variant="ghost"
@@ -78,7 +96,7 @@ export default function Shipments() {
           title="Delete shipment"
           onClick={(e) => {
             e.stopPropagation();
-            setShipmentToDelete(row);
+            setPendingDeleteIds([String(row.id)]);
           }}
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -108,7 +126,27 @@ export default function Shipments() {
       <GlobalFilters filters={filters} setFilters={setFilters} couriers={couriers} states={states} cities={cities} sourceSystems={sourceSystems} />
 
       <Card className="p-5 border-border/50">
-        <DataTable columns={columns} data={searchFiltered} onRowClick={setSelectedShipment} pageSize={20} />
+        <DataTable
+          columns={columns}
+          data={searchFiltered}
+          onRowClick={setSelectedShipment}
+          pageSize={20}
+          searchable={false}
+          selectable
+          selectedIds={selectedIds}
+          onSelectedIdsChange={setSelectedIds}
+          toolbarStart={selectedIds.length > 0 ? (
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setPendingDeleteIds([...selectedIds])}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete ({selectedIds.length})
+            </Button>
+          ) : null}
+        />
       </Card>
 
       {/* Detail Dialog */}
@@ -122,12 +160,23 @@ export default function Shipments() {
       {/* Import Dialog */}
       <BulkImportDialog open={showImport} onClose={() => setShowImport(false)} />
 
-      <AlertDialog open={!!shipmentToDelete} onOpenChange={open => { if (!open) setShipmentToDelete(null); }}>
+      <AlertDialog open={!!pendingDeleteIds?.length} onOpenChange={open => { if (!open) setPendingDeleteIds(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete shipment?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {pendingDeleteCount === 1 ? 'Delete shipment?' : `Delete ${pendingDeleteCount} shipments?`}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove order {shipmentToDelete?.order_number || '—'} from the system, including its tracking history. This cannot be undone.
+              {pendingDeleteCount === 1 ? (
+                <>This will permanently remove the selected shipment from the system, including its tracking history. This cannot be undone.</>
+              ) : (
+                <>
+                  This will permanently remove {pendingDeleteCount} shipments from the system, including their tracking history. This cannot be undone.
+                  {pendingDeleteOrders.length > 0 && (
+                    <> Orders include {pendingDeleteOrders.join(', ')}{pendingDeleteCount > pendingDeleteOrders.length ? ', …' : ''}.</>
+                  )}
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -137,8 +186,8 @@ export default function Shipments() {
               disabled={deleteMutation.isPending}
               onClick={(e) => {
                 e.preventDefault();
-                if (shipmentToDelete?.id) {
-                  deleteMutation.mutate(shipmentToDelete.id);
+                if (pendingDeleteIds?.length) {
+                  deleteMutation.mutate(pendingDeleteIds);
                 }
               }}
             >

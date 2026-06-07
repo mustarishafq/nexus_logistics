@@ -34,6 +34,7 @@ Route::middleware(['auth:sanctum', EnsureUserIsApproved::class])->group(function
     Route::get('shipments', [ShipmentController::class, 'index']);
     Route::post('shipments', [ShipmentController::class, 'store']);
     Route::post('shipments/bulk', [ShipmentController::class, 'bulkStore']);
+    Route::post('shipments/bulk-delete', [ShipmentController::class, 'bulkDestroy']);
     Route::delete('shipments/{id}', [ShipmentController::class, 'destroy']);
 
     Route::get('sla-rules', [SlaRuleController::class, 'index']);
