@@ -103,4 +103,74 @@ class WebhookShipmentTest extends TestCase
         $this->assertSame('TRK-123', $shipment->tracking_number);
         $this->assertSame(2, TrackingEvent::query()->count());
     }
+
+    public function test_deletes_shipment_when_cancelled_status_is_received(): void
+    {
+        $source = SourceSystem::create([
+            'name' => 'SiteGiant',
+            'system_type' => 'oms',
+            'api_key' => 'test-api-key',
+            'webhook_secret' => 'secret',
+            'status' => 'active',
+            'status_mappings' => ['Paid' => 'shipped'],
+            'deletion_statuses' => ['Cancelled', 'Order Voided'],
+        ]);
+
+        $this->postJson("/api/webhooks/{$source->id}/shipments", [[
+            'order_number' => '193504',
+            'courier' => 'J&T Express',
+            'current_status' => 'Paid',
+            'ship_date' => '2026-06-08',
+        ]], [
+            'X-API-Key' => 'test-api-key',
+        ])->assertCreated();
+
+        $this->assertSame(1, Shipment::query()->count());
+        $this->assertSame(1, TrackingEvent::query()->count());
+
+        $response = $this->postJson("/api/webhooks/{$source->id}/shipments", [[
+            'order_number' => '193504',
+            'current_status' => 'Cancelled',
+        ]], [
+            'X-API-Key' => 'test-api-key',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('deleted', 1)
+            ->assertJsonPath('updated', 0)
+            ->assertJsonPath('created', 0);
+
+        $this->assertSame(0, Shipment::query()->count());
+        $this->assertSame(0, TrackingEvent::query()->count());
+    }
+
+    public function test_deletion_trigger_is_case_insensitive(): void
+    {
+        $source = SourceSystem::create([
+            'name' => 'Shopify',
+            'system_type' => 'shopify',
+            'api_key' => 'test-api-key',
+            'webhook_secret' => 'secret',
+            'status' => 'active',
+            'deletion_statuses' => ['Order Cancelled'],
+        ]);
+
+        Shipment::create([
+            'source_system' => $source->name,
+            'order_number' => '1001',
+            'tracking_number' => '',
+            'courier' => 'DHL',
+            'current_status' => 'pending',
+        ]);
+
+        $this->postJson("/api/webhooks/{$source->id}/shipments", [[
+            'order_number' => '1001',
+            'current_status' => 'order cancelled',
+        ]], [
+            'X-API-Key' => 'test-api-key',
+        ])->assertCreated()
+            ->assertJsonPath('deleted', 1);
+
+        $this->assertSame(0, Shipment::query()->count());
+    }
 }

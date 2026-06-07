@@ -128,6 +128,9 @@ export default function Integrations() {
                   {src.status_mappings && typeof src.status_mappings === 'object' && !Array.isArray(src.status_mappings)
                     ? Object.keys(src.status_mappings).length
                     : 0} mapped
+                  {Array.isArray(src.deletion_statuses) && src.deletion_statuses.length > 0
+                    ? ` · ${src.deletion_statuses.length} delete trigger${src.deletion_statuses.length === 1 ? '' : 's'}`
+                    : ''}
                 </span>
                 <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setMappingSource(src)}>
                   <ArrowLeftRight className="w-3 h-3" /> Configure

@@ -43,6 +43,7 @@ class WebhookController extends Controller
             $shipments = [];
             $createdCount = 0;
             $updatedCount = 0;
+            $deletedCount = 0;
 
             foreach ($records as $record) {
                 if (! is_array($record)) {
@@ -50,6 +51,13 @@ class WebhookController extends Controller
                 }
 
                 $result = $this->ingestService->upsert($sourceSystem->name, $record, $sourceSystem);
+
+                if ($result['deleted']) {
+                    $deletedCount++;
+
+                    continue;
+                }
+
                 $shipments[] = $result['shipment']->toApiArray();
 
                 if ($result['created']) {
@@ -73,6 +81,7 @@ class WebhookController extends Controller
                 'message' => 'Shipments received.',
                 'created' => $createdCount,
                 'updated' => $updatedCount,
+                'deleted' => $deletedCount,
                 'shipments' => $shipments,
             ], 201);
         } catch (\Throwable $e) {

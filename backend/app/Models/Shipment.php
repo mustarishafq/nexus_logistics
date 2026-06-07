@@ -41,5 +41,9 @@ class Shipment extends Model
         static::saving(function (Shipment $shipment) {
             app(ShipmentSlaService::class)->apply($shipment);
         });
+
+        static::deleting(function (Shipment $shipment) {
+            $shipment->trackingEvents()->delete();
+        });
     }
 }

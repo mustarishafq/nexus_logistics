@@ -1,11 +1,23 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, Upload } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Search, Upload, Trash2 } from 'lucide-react';
+import api from '@/api/client';
+import { toast } from 'sonner';
 import DataTable from '@/components/shared/DataTable';
 import StatusBadge from '@/components/shared/StatusBadge';
 import ShipmentDetail from '@/components/shipments/ShipmentDetail';
@@ -16,10 +28,25 @@ import { filterShipments, getUniqueValues } from '@/lib/analyticsUtils';
 import { formatDate } from '@/lib/dateUtils';
 
 export default function Shipments() {
+  const queryClient = useQueryClient();
   const { filtered, filters, setFilters, isLoading, couriers, states, cities, sourceSystems } = useShipmentData();
   const [selectedShipment, setSelectedShipment] = useState(null);
+  const [shipmentToDelete, setShipmentToDelete] = useState(null);
   const [showImport, setShowImport] = useState(false);
   const [searchText, setSearchText] = useState('');
+
+  const deleteMutation = useMutation({
+    mutationFn: id => api.entities.Shipment.delete(id),
+    onSuccess: (_, deletedId) => {
+      queryClient.invalidateQueries({ queryKey: ['shipments'] });
+      setSelectedShipment(prev => (prev?.id === deletedId ? null : prev));
+      setShipmentToDelete(null);
+      toast.success('Shipment deleted');
+    },
+    onError: () => {
+      toast.error('Failed to delete shipment');
+    },
+  });
 
   const searchFiltered = searchText
     ? filtered.filter(s =>
@@ -39,6 +66,25 @@ export default function Shipments() {
     { key: 'delivery_date', label: 'Delivery Date', render: v => formatDate(v) },
     { key: 'source_system', label: 'Source' },
     { key: 'sla_result', label: 'SLA', render: v => v ? <StatusBadge status={v} /> : '-' },
+    {
+      key: 'actions',
+      label: '',
+      sortable: false,
+      render: (_, row) => (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-destructive hover:text-destructive"
+          title="Delete shipment"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShipmentToDelete(row);
+          }}
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </Button>
+      ),
+    },
   ];
 
   if (isLoading) {
@@ -75,6 +121,32 @@ export default function Shipments() {
 
       {/* Import Dialog */}
       <BulkImportDialog open={showImport} onClose={() => setShowImport(false)} />
+
+      <AlertDialog open={!!shipmentToDelete} onOpenChange={open => { if (!open) setShipmentToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete shipment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove order {shipmentToDelete?.order_number || '—'} from the system, including its tracking history. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (shipmentToDelete?.id) {
+                  deleteMutation.mutate(shipmentToDelete.id);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

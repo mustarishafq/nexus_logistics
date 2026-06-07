@@ -19,11 +19,16 @@ class SourceSystemController extends EntityController
         $sourceSystem = SourceSystem::query()->findOrFail($id);
 
         $data = $request->only([
-            'name', 'system_type', 'api_key', 'webhook_secret', 'status', 'status_mappings',
+            'name', 'system_type', 'api_key', 'webhook_secret', 'status',
+            'status_mappings', 'deletion_statuses',
         ]);
 
         if (isset($data['status_mappings']) && is_array($data['status_mappings'])) {
             $data['status_mappings'] = $this->sanitizeStatusMappings($data['status_mappings']);
+        }
+
+        if (isset($data['deletion_statuses']) && is_array($data['deletion_statuses'])) {
+            $data['deletion_statuses'] = $this->sanitizeDeletionStatuses($data['deletion_statuses']);
         }
 
         $sourceSystem->update($data);
@@ -44,5 +49,19 @@ class SourceSystemController extends EntityController
         }
 
         return $sanitized;
+    }
+
+    private function sanitizeDeletionStatuses(array $statuses): array
+    {
+        $sanitized = [];
+
+        foreach ($statuses as $status) {
+            $status = trim((string) $status);
+            if ($status !== '') {
+                $sanitized[] = $status;
+            }
+        }
+
+        return array_values(array_unique($sanitized));
     }
 }

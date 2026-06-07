@@ -54,4 +54,24 @@ class StatusMappingServiceTest extends TestCase
         $this->assertSame(ShipmentStatus::PENDING, $this->service->resolve($source, 'Unknown OMS Status'));
         $this->assertSame(ShipmentStatus::PENDING, $this->service->resolve($source, null));
     }
+
+    public function test_deletion_trigger_matches_configured_status(): void
+    {
+        $source = new SourceSystem([
+            'deletion_statuses' => ['Cancelled', 'Void'],
+        ]);
+
+        $this->assertTrue($this->service->shouldTriggerDeletion($source, 'Cancelled'));
+        $this->assertTrue($this->service->shouldTriggerDeletion($source, 'Void'));
+        $this->assertFalse($this->service->shouldTriggerDeletion($source, 'Paid'));
+    }
+
+    public function test_deletion_trigger_is_case_insensitive(): void
+    {
+        $source = new SourceSystem([
+            'deletion_statuses' => ['Order Cancelled'],
+        ]);
+
+        $this->assertTrue($this->service->shouldTriggerDeletion($source, 'order cancelled'));
+    }
 }

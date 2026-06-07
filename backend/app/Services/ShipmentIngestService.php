@@ -12,7 +12,7 @@ class ShipmentIngestService
     public function __construct(private StatusMappingService $statusMapping) {}
 
     /**
-     * @return array{shipment: Shipment, created: bool}
+     * @return array{shipment: ?Shipment, created: bool, deleted: bool}
      */
     public function upsert(string $sourceSystem, array $record, ?SourceSystem $source = null): array
     {
@@ -22,6 +22,11 @@ class ShipmentIngestService
         }
 
         $externalStatus = $record['current_status'] ?? $record['status'] ?? null;
+
+        if ($source && $this->statusMapping->shouldTriggerDeletion($source, $externalStatus)) {
+            return $this->deleteByOrder($sourceSystem, $orderNumber);
+        }
+
         $status = $source
             ? $this->statusMapping->resolve($source, $externalStatus)
             : $this->normalizeStatus($externalStatus);
@@ -63,6 +68,28 @@ class ShipmentIngestService
         return [
             'shipment' => $shipment,
             'created' => $shipment->wasRecentlyCreated,
+            'deleted' => false,
+        ];
+    }
+
+    /**
+     * @return array{shipment: null, created: false, deleted: bool}
+     */
+    private function deleteByOrder(string $sourceSystem, string $orderNumber): array
+    {
+        $shipment = Shipment::query()
+            ->where('source_system', $sourceSystem)
+            ->where('order_number', $orderNumber)
+            ->first();
+
+        if ($shipment) {
+            $shipment->delete();
+        }
+
+        return [
+            'shipment' => null,
+            'created' => false,
+            'deleted' => $shipment !== null,
         ];
     }
 

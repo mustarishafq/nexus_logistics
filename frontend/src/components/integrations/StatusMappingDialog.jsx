@@ -27,19 +27,32 @@ function mappingsToRows(mappings) {
   }));
 }
 
+function deletionStatusesToRows(statuses) {
+  if (!Array.isArray(statuses)) {
+    return [];
+  }
+
+  return statuses.map((status, index) => ({
+    id: `delete-${status}-${index}`,
+    value: String(status),
+  }));
+}
+
 export default function StatusMappingDialog({ source, open, onOpenChange }) {
   const queryClient = useQueryClient();
   const [rows, setRows] = useState([]);
+  const [deletionRows, setDeletionRows] = useState([]);
   const sourceId = source?.id;
 
   useEffect(() => {
     if (open && source) {
       setRows(mappingsToRows(source.status_mappings));
+      setDeletionRows(deletionStatusesToRows(source.deletion_statuses));
     }
   }, [open, source]);
 
   const saveMutation = useMutation({
-    mutationFn: mappings => api.entities.SourceSystem.update(sourceId, { status_mappings: mappings }),
+    mutationFn: payload => api.entities.SourceSystem.update(sourceId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['source-systems'] });
       toast.success('Status mappings saved');
@@ -55,8 +68,20 @@ export default function StatusMappingDialog({ source, open, onOpenChange }) {
     setRows(prev => prev.filter(row => row.id !== id));
   };
 
+  const addDeletionRow = () => {
+    setDeletionRows(prev => [...prev, { id: `new-delete-${Date.now()}`, value: '' }]);
+  };
+
+  const removeDeletionRow = (id) => {
+    setDeletionRows(prev => prev.filter(row => row.id !== id));
+  };
+
   const updateRow = (id, field, value) => {
     setRows(prev => prev.map(row => (row.id === id ? { ...row, [field]: value } : row)));
+  };
+
+  const updateDeletionRow = (id, value) => {
+    setDeletionRows(prev => prev.map(row => (row.id === id ? { ...row, value } : row)));
   };
 
   const handleSave = () => {
@@ -66,7 +91,12 @@ export default function StatusMappingDialog({ source, open, onOpenChange }) {
       if (!external) continue;
       mappings[external] = row.internal;
     }
-    saveMutation.mutate(mappings);
+
+    const deletionStatuses = deletionRows
+      .map(row => row.value.trim())
+      .filter(Boolean);
+
+    saveMutation.mutate({ status_mappings: mappings, deletion_statuses: deletionStatuses });
   };
 
   return (
@@ -75,7 +105,7 @@ export default function StatusMappingDialog({ source, open, onOpenChange }) {
         <DialogHeader>
           <DialogTitle>Status Mappings — {source?.name}</DialogTitle>
           <DialogDescription>
-            Map external OMS status values to this system&apos;s shipment statuses. Unmapped values default to pending.
+            Map external OMS status values to this system&apos;s shipment statuses. Configure which OMS statuses should automatically remove shipments from the system.
           </DialogDescription>
         </DialogHeader>
 
@@ -118,6 +148,40 @@ export default function StatusMappingDialog({ source, open, onOpenChange }) {
         <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={addRow}>
           <Plus className="w-3.5 h-3.5" /> Add Mapping
         </Button>
+
+        <div className="space-y-3 pt-2 border-t border-border/50">
+          <div>
+            <p className="text-xs font-medium">Auto-Delete Triggers</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              When the OMS sends one of these statuses, the matching shipment is removed from the system.
+            </p>
+          </div>
+
+          {deletionRows.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center py-2">No deletion triggers configured.</p>
+          )}
+
+          {deletionRows.map(row => (
+            <div key={row.id} className="flex items-end gap-2">
+              <div className="flex-1 space-y-1">
+                <Label className="text-[10px] text-muted-foreground">External OMS Status</Label>
+                <Input
+                  value={row.value}
+                  onChange={e => updateDeletionRow(row.id, e.target.value)}
+                  placeholder="e.g. Cancelled"
+                  className="text-xs"
+                />
+              </div>
+              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive" onClick={() => removeDeletionRow(row.id)}>
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          ))}
+
+          <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={addDeletionRow}>
+            <Plus className="w-3.5 h-3.5" /> Add Deletion Trigger
+          </Button>
+        </div>
 
         <div className="rounded-lg border border-border/50 p-3 space-y-2">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider">System Statuses</p>

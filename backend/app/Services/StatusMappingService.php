@@ -39,4 +39,22 @@ class StatusMappingService
     {
         return in_array($status, ShipmentStatus::ALL, true);
     }
+
+    public function shouldTriggerDeletion(SourceSystem $sourceSystem, ?string $externalStatus): bool
+    {
+        if ($externalStatus === null || trim($externalStatus) === '') {
+            return false;
+        }
+
+        $externalStatus = trim($externalStatus);
+        $statuses = $sourceSystem->deletion_statuses ?? [];
+
+        foreach ($statuses as $status) {
+            if (strcasecmp((string) $status, $externalStatus) === 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
