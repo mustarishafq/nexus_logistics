@@ -10,15 +10,17 @@ import { formatDate, formatTimelineDate } from '@/lib/dateUtils';
 import { buildFallbackTimeline, sortTimelineEvents } from '@/lib/shipmentTimeline';
 
 export default function ShipmentDetail({ shipment }) {
-  const { data: events = [] } = useQuery({
+  const { data: events, isPending, isError } = useQuery({
     queryKey: ['tracking-events', shipment.id],
     queryFn: () => api.entities.TrackingEvent.filter({ shipment_id: shipment.id }, '-timestamp', 50),
     enabled: !!shipment.id,
   });
 
-  const timelineEvents = sortTimelineEvents(
-    events.length > 0 ? events : buildFallbackTimeline(shipment),
-  );
+  const timelineEvents = isPending
+    ? null
+    : sortTimelineEvents(
+        !isError && events?.length > 0 ? events : buildFallbackTimeline(shipment),
+      );
 
   const fields = [
     { icon: Hash, label: 'Order #', value: shipment.order_number },
@@ -67,7 +69,9 @@ export default function ShipmentDetail({ shipment }) {
       {/* Timeline */}
       <div>
         <h4 className="text-sm font-semibold mb-3">Tracking Timeline</h4>
-        {timelineEvents.length === 0 ? (
+        {isPending ? (
+          <p className="text-sm text-muted-foreground">Loading timeline...</p>
+        ) : timelineEvents.length === 0 ? (
           <p className="text-sm text-muted-foreground">No tracking events recorded</p>
         ) : (
           <div className="rounded-lg border border-border/50 bg-muted/20 px-4 py-3">

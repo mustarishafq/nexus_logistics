@@ -101,98 +101,100 @@ export default function StatusMappingDialog({ source, open, onOpenChange }) {
 
   return (
     <Dialog open={open && !!source} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="shrink-0 px-6 pt-6 pb-4">
           <DialogTitle>Status Mappings — {source?.name}</DialogTitle>
           <DialogDescription>
             Map external OMS status values to this system&apos;s shipment statuses. Configure which OMS statuses should automatically remove shipments from the system.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
-          {rows.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center py-4">No mappings yet. Add one to get started.</p>
-          )}
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 space-y-4">
+          <div className="space-y-3">
+            {rows.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-4">No mappings yet. Add one to get started.</p>
+            )}
 
-          {rows.map(row => (
-            <div key={row.id} className="flex items-end gap-2">
-              <div className="flex-1 space-y-1">
-                <Label className="text-[10px] text-muted-foreground">External OMS Status</Label>
-                <Input
-                  value={row.external}
-                  onChange={e => updateRow(row.id, 'external', e.target.value)}
-                  placeholder="e.g. Order Shipped"
-                  className="text-xs"
-                />
+            {rows.map(row => (
+              <div key={row.id} className="flex items-end gap-2">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">External OMS Status</Label>
+                  <Input
+                    value={row.external}
+                    onChange={e => updateRow(row.id, 'external', e.target.value)}
+                    placeholder="e.g. Order Shipped"
+                    className="text-xs"
+                  />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">System Status</Label>
+                  <Select value={row.internal} onValueChange={v => updateRow(row.id, 'internal', v)}>
+                    <SelectTrigger className="text-xs h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SHIPMENT_STATUSES.map(s => (
+                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive" onClick={() => removeRow(row.id)}>
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
               </div>
-              <div className="flex-1 space-y-1">
-                <Label className="text-[10px] text-muted-foreground">System Status</Label>
-                <Select value={row.internal} onValueChange={v => updateRow(row.id, 'internal', v)}>
-                  <SelectTrigger className="text-xs h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SHIPMENT_STATUSES.map(s => (
-                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive" onClick={() => removeRow(row.id)}>
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          ))}
-        </div>
-
-        <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={addRow}>
-          <Plus className="w-3.5 h-3.5" /> Add Mapping
-        </Button>
-
-        <div className="space-y-3 pt-2 border-t border-border/50">
-          <div>
-            <p className="text-xs font-medium">Auto-Delete Triggers</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              When the OMS sends one of these statuses, the matching shipment is removed from the system.
-            </p>
-          </div>
-
-          {deletionRows.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center py-2">No deletion triggers configured.</p>
-          )}
-
-          {deletionRows.map(row => (
-            <div key={row.id} className="flex items-end gap-2">
-              <div className="flex-1 space-y-1">
-                <Label className="text-[10px] text-muted-foreground">External OMS Status</Label>
-                <Input
-                  value={row.value}
-                  onChange={e => updateDeletionRow(row.id, e.target.value)}
-                  placeholder="e.g. Cancelled"
-                  className="text-xs"
-                />
-              </div>
-              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive" onClick={() => removeDeletionRow(row.id)}>
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          ))}
-
-          <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={addDeletionRow}>
-            <Plus className="w-3.5 h-3.5" /> Add Deletion Trigger
-          </Button>
-        </div>
-
-        <div className="rounded-lg border border-border/50 p-3 space-y-2">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">System Statuses</p>
-          <div className="flex flex-wrap gap-1.5">
-            {SHIPMENT_STATUSES.map(s => (
-              <StatusBadge key={s.value} status={s.value} />
             ))}
+
+            <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={addRow}>
+              <Plus className="w-3.5 h-3.5" /> Add Mapping
+            </Button>
+          </div>
+
+          <div className="space-y-3 pt-2 border-t border-border/50">
+            <div>
+              <p className="text-xs font-medium">Auto-Delete Triggers</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                When the OMS sends one of these statuses, the matching shipment is removed from the system.
+              </p>
+            </div>
+
+            {deletionRows.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-2">No deletion triggers configured.</p>
+            )}
+
+            {deletionRows.map(row => (
+              <div key={row.id} className="flex items-end gap-2">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">External OMS Status</Label>
+                  <Input
+                    value={row.value}
+                    onChange={e => updateDeletionRow(row.id, e.target.value)}
+                    placeholder="e.g. Cancelled"
+                    className="text-xs"
+                  />
+                </div>
+                <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive" onClick={() => removeDeletionRow(row.id)}>
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            ))}
+
+            <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={addDeletionRow}>
+              <Plus className="w-3.5 h-3.5" /> Add Deletion Trigger
+            </Button>
+          </div>
+
+          <div className="rounded-lg border border-border/50 p-3 space-y-2">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">System Statuses</p>
+            <div className="flex flex-wrap gap-1.5">
+              {SHIPMENT_STATUSES.map(s => (
+                <StatusBadge key={s.value} status={s.value} />
+              ))}
+            </div>
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 px-6 py-4 border-t bg-background">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={handleSave} disabled={saveMutation.isPending}>Save Mappings</Button>
         </DialogFooter>
